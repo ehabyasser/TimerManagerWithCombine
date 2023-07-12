@@ -36,10 +36,10 @@ class TimerManager:NSObject {
     }
     
 
-    func start(with:Int) {
+    func start(seconds:Int) {
         initSubscriber()
         setupTimer()
-        initTime(time: with)
+        initTime(time: seconds)
     }
     
     func stop(){
