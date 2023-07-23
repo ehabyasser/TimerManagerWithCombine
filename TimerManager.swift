@@ -15,37 +15,33 @@ protocol TimerDelegate {
     func finished()
 }
 
-class TimerManager:NSObject {
+class TimerManager:ObservableObject {
     
-    private var counter = PassthroughSubject<Int , Error>()
-    private var subscriber:AnyCancellable!
+    private var subscriber:Set<AnyCancellable> = Set<AnyCancellable>()
     private var storage:Int = 0
     private weak var timer:Timer?
     var delegate:TimerDelegate?
     private var isEnded:Bool {
-        time < 0
+        time == 0
     }
-    private var time:Int! {
+    @Published private var time:Int! {
         didSet{
             if isEnded {
                 stop()
-            }else{
-                counter.send(time)
             }
         }
     }
-    
 
-    func start(seconds:Int) {
+    func start(with:Int) {
         initSubscriber()
         setupTimer()
-        initTime(time: seconds)
+        initTime(time: with)
     }
     
     func stop(){
-        delegate?.finished()
         timer?.invalidate()
         timer = nil
+        self.delegate?.finished()
     }
     
     func restart(){
@@ -65,18 +61,10 @@ class TimerManager:NSObject {
     
     
     private func initSubscriber(){
-        subscriber = counter.sink { completion in
-            switch completion {
-            case .finished:
-                print("finished")
-                break
-            case .failure(let err):
-                print(err.localizedDescription)
-                break
-            }
-        } receiveValue: { second in
-            self.delegate?.runing(time: second)
-        }
+        $time
+            .sink (receiveValue: { second in
+                self.delegate?.runing(time: second ?? 0)
+            }).store(in: &subscriber)
     }
     
     
@@ -85,11 +73,6 @@ class TimerManager:NSObject {
         if !isEnded{
             time -= 1
         }
-    }
-    
-    deinit{
-        counter.send(completion: .finished)
-        stop()
     }
     
 }
